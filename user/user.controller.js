@@ -160,11 +160,18 @@ router.get('/:id', async (req, res) => {
 //* update user by id
 router.put(
   '/update/:id',
+  isUser,
   validateRequestBody(userValidationSchema),
   async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
     try {
+      // Only allow the logged-in user to update their own account
+      if (req.loggedInUserId.toString() !== id) {
+        return res
+          .status(403)
+          .send({ message: 'You can only update your own account.' });
+      }
       // If password is being updated, hash it
       if (updates.password) {
         const saltRound = 10;
