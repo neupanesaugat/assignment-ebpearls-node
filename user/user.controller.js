@@ -7,7 +7,11 @@ import {
 } from './user.validation.js';
 
 import jwt from 'jsonwebtoken';
+
+import { isAdmin, isUser } from '../middleware/authentication.middleware.js';
 import validateRequestBody from '../middleware/validate.req.body.js';
+
+import { validateObjectId } from '../middleware/validate.mongo.objectid.js';
 
 const router = express.Router();
 
@@ -90,22 +94,24 @@ router.post(
   }
 );
 
-//* delete user by id
-router.delete('/delete/:id', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const deletedUser = await User.findByIdAndDelete(id);
-    if (!deletedUser) {
-      return res.status(404).send({ message: 'User not found' });
-    }
-    return res
-      .status(200)
-      .send({ message: 'User deleted successfully', userDetail: deletedUser });
-  } catch (error) {
-    return res
-      .status(500)
-      .send({ message: 'Failed to delete user', error: error.message });
+//* delete user by id (admin only)
+router.delete('/delete/:id', isAdmin, validateObjectId, async (req, res) => {
+  // extract product id from req.params
+  const userId = req.params.id;
+
+  // find user using userId
+  const user = await User.findById(userId);
+
+  // if not user found, throw error
+  if (!user) {
+    return res.status(404).send({ message: 'User does not exist' });
   }
+
+  // delete user
+  await User.findByIdAndDelete(userId);
+
+  // send res
+  return res.status(200).send({ message: 'Success!' });
 });
 
 //* get all users
@@ -117,6 +123,21 @@ router.get('/all', async (req, res) => {
     return res
       .status(500)
       .send({ message: 'Failed to fetch users', error: error.message });
+  }
+});
+
+//* get current logged-in user (protected)
+router.get('/me', isUser, async (req, res) => {
+  try {
+    const user = await User.findById(req.loggedInUserId);
+    if (!user) {
+      return res.status(404).send({ message: 'User not found' });
+    }
+    return res.status(200).send({ user });
+  } catch (error) {
+    return res
+      .status(500)
+      .send({ message: 'Failed to fetch user', error: error.message });
   }
 });
 
@@ -167,4 +188,18 @@ router.put(
   }
 );
 
+//* get current logged-in user (protected)
+router.get('/me', isUser, async (req, res) => {
+  try {
+    const user = await User.findById(req.loggedInUserId);
+    if (!user) {
+      return res.status(404).send({ message: 'User not found' });
+    }
+    return res.status(200).send({ user });
+  } catch (error) {
+    return res
+      .status(500)
+      .send({ message: 'Failed to fetch user', error: error.message });
+  }
+});
 export default router;

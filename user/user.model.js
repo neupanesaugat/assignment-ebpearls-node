@@ -32,6 +32,12 @@ const userSchema = new mongoose.Schema({
     required: true,
     enum: ['male', 'female', 'other'], //? should be among these values
   },
+  role: {
+    type: String,
+    required: true,
+    enum: ['blogger', 'viewer', 'admin'], //? should be among these values
+    default: 'viewer', //? default role is viewer
+  },
 });
 
 // delete password while giving response (converting to json)
